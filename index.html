@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCTV | Reconstructing the CTV ad transaction</title>
+<meta name="description" content="OpenCTV is an open-source project that reconstructs the end-to-end lifecycle of a connected TV ad transaction and identifies the first evidence-supported point of divergence.">
+<link rel="canonical" href="https://openctv.org/">
+<meta property="og:title" content="OpenCTV">
+<meta property="og:description" content="Open-source tooling that reconstructs the end-to-end lifecycle of a CTV ad transaction and finds the first evidence-supported divergence.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://openctv.org/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%230b0d10'/%3E%3Cg fill='none' stroke='%2358d3a8' stroke-width='4' stroke-linecap='square'%3E%3Cpath d='M19 12H11v24h8'/%3E%3Cpath d='M29 12h8v24h-8'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0d10;
+    --panel:#11151a;
+    --line:#1e252d;
+    --text:#e6eaef;
+    --muted:#8d99a6;
+    --accent:#58d3a8;
+    --accent-dim:#2f7f66;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:64px 24px 80px}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-dim)}
+  a:hover{border-bottom-color:var(--accent)}
+
+  header{display:flex;align-items:center;gap:14px;margin-bottom:44px}
+  .mark{width:40px;height:40px;color:var(--accent);flex:none}
+  .wordmark{font-size:22px;font-weight:650;letter-spacing:-.01em}
+  .wordmark span{color:var(--muted);font-weight:450}
+
+  h1{
+    font-size:clamp(28px,5.2vw,40px);
+    line-height:1.2;
+    letter-spacing:-.022em;
+    font-weight:640;
+    margin:0 0 20px;
+  }
+  .lede{font-size:18px;color:var(--muted);margin:0 0 14px;max-width:60ch}
+  .lede strong{color:var(--text);font-weight:550}
+
+  .status{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;margin-bottom:28px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+
+  section{margin-top:52px}
+  h2{
+    font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin:0 0 18px;
+  }
+
+  .chain{
+    display:flex;flex-wrap:wrap;gap:8px;
+    padding:0;margin:0;list-style:none;
+  }
+  .chain li{
+    font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:var(--text);background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;
+    padding:6px 10px;
+  }
+  .chain li::after{content:"→";color:var(--muted);margin-left:10px}
+  .chain li:last-child::after{content:""}
+
+  .grid{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  @media(min-width:620px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:var(--panel);padding:18px 20px}
+  .card h3{margin:0 0 6px;font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .card p{margin:0;font-size:14px;color:var(--muted);line-height:1.55}
+
+  ul.plain{margin:0;padding:0;list-style:none}
+  ul.plain li{
+    font-size:14.5px;color:var(--muted);
+    padding:9px 0 9px 20px;position:relative;
+    border-bottom:1px solid var(--line);
+  }
+  ul.plain li:last-child{border-bottom:0}
+  ul.plain li::before{
+    content:"";position:absolute;left:2px;top:18px;
+    width:6px;height:1px;background:var(--accent-dim);
+  }
+  ul.plain b{color:var(--text);font-weight:550}
+
+  .note{
+    margin-top:52px;padding:16px 18px;
+    border-left:2px solid var(--accent-dim);
+    background:var(--panel);
+    font-size:14px;color:var(--muted);
+  }
+
+  footer{
+    margin-top:60px;padding-top:24px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;
+    font-size:14px;color:var(--muted);
+  }
+  footer .sep{flex:1}
+  @media(max-width:520px){footer .sep{display:none;flex:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square">
+        <path d="M19 10H11v28h8"/>
+        <path d="M29 10h8v28h-8"/>
+      </g>
+    </svg>
+    <div class="wordmark">Open<span>CTV</span></div>
+  </header>
+
+  <main>
+    <div class="status"><span class="dot"></span> Building in the open</div>
+
+    <h1>Reconstructing the connected&nbsp;TV ad transaction, end to&nbsp;end.</h1>
+
+    <p class="lede">
+      A streaming ad break touches a dozen systems and produces a dozen partial stories.
+      OpenCTV connects existing standards, validators, ad servers, stitchers, players and
+      telemetry into one executable transaction, replays its lifecycle, and identifies
+      <strong>the first evidence-supported point of divergence</strong>, then explains what
+      that divergence costs in delivery, measurement and billing.
+    </p>
+
+    <section>
+      <h2>The chain under test</h2>
+      <ul class="chain">
+        <li>OpenRTB</li>
+        <li>VAST</li>
+        <li>SSAI / SGAI</li>
+        <li>HLS / DASH</li>
+        <li>Player</li>
+        <li>Measurement</li>
+        <li>Reconciliation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What it does</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Reconstruct</h3>
+          <p>Assemble bid, response, manifest, playback and telemetry evidence into a single ordered lifecycle for one impression.</p>
+        </div>
+        <div class="card">
+          <h3>Diverge</h3>
+          <p>Find the earliest step where the evidence stops agreeing, rather than arguing about end-of-chain discrepancy totals.</p>
+        </div>
+        <div class="card">
+          <h3>Explain</h3>
+          <p>Translate that divergence into its consequence: an ad that did not render, a beacon that never fired, a bill that will not reconcile.</p>
+        </div>
+        <div class="card">
+          <h3>Reproduce</h3>
+          <p>Ship fixtures and deterministic cases so a defect can be handed to a partner as something they can run, not describe.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>On the way</h2>
+      <ul class="plain">
+        <li><b>Ad Break Lens</b>: correlate SCTE-35 markers, HLS cues, interstitials and DASH periods across one break</li>
+        <li><b>Semantic Manifest Diff</b>: compare manifests by meaning instead of by text</li>
+        <li><b>Stream Inspector</b>: walk a live or recorded stream and surface what the player will actually see</li>
+        <li><b>Stream Fixtures</b>: a shared corpus of reproducible streams and edge cases</li>
+        <li><b>Ad Asset Fit Checker</b>: catch creatives that will not play before they reach a device</li>
+        <li><b>FAST Channel Preflight</b> and <b>EPG Drift Auditor</b>: channel-level readiness and schedule drift</li>
+        <li><b>SGAI Interstitial Lab</b>: experimental ground for guided ad insertion behavior</li>
+      </ul>
+    </section>
+
+    <p class="note">
+      OpenCTV is not a replacement for any existing standard, specification or vendor tool.
+      It is the connective layer between them: the part nobody owns, and the part where
+      most of the failures actually live.
+    </p>
+  </main>
+
+  <footer>
+    <a href="https://github.com/OpenCTV">GitHub</a>
+    <span>Packages reserved on PyPI and npm</span>
+    <span class="sep"></span>
+    <span>openctv.org</span>
+  </footer>
+
+</div>
+</body>
+</html>
